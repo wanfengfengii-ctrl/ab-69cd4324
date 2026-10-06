@@ -1,0 +1,27 @@
+services:
+  api:
+    build: .
+    image: tracking-plan-audit:latest
+    environment:
+      PORT: "8080"
+      LOG_LEVEL: "INFO"
+    ports:
+      # 宿主端口可配置：HOST_PORT 默认 8080，可用 --env HOST_PORT=9090 或 .env 覆盖
+      - "${HOST_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2).status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 3s
+
+  verify:
+    build: .
+    image: tracking-plan-audit:latest
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BASE_URL: http://api:8080
+    entrypoint: ["python", "scripts/verify.py"]
+    restart: "no"
